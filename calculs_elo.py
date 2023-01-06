@@ -343,3 +343,19 @@ def parie_ligue_seuil_variable_fermeture(elo_equipes, intervalle_matchs,
             bankroll_max = bankroll_finale
             seuil_benef_max = seuil_bas
     return seuil_benef_max, bankroll_max
+
+
+def calcule_vraisemblance(elo_equipes, intervalle_matchs, K):
+    """Calcule la vraisemblance sur un intervalle de matchs donné."""
+
+    initialise_elo_equipes(elo_equipes)
+    serie_matchs = inverse_intervalle(intervalle_matchs)
+    vraisemblance = 1
+    for num_match in serie_matchs:
+        equipe1, equipe2, resultat = recupere_match_bdd(num_match)
+        equipes = equipe2, equipe1
+        equipeG, equipeP = equipes[resultat], equipes[1 - resultat]
+        proba = calcule_probabilite_victoire(elo_equipes, equipeG, equipeP)
+        vraisemblance = vraisemblance * proba
+        elo_equipes = calcule_match(elo_equipes, equipe1, equipe2, resultat, K)
+    return vraisemblance
