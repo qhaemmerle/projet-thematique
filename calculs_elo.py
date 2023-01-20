@@ -1,6 +1,8 @@
 import math
 import json
-from matplotlib import pyplot as plt
+
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 
 
 # 1) Importation des BDD
@@ -120,24 +122,9 @@ def calcule_elo_ligue(elo_equipes, intervalle_matchs, K):
 
     initialise_elo_equipes(elo_equipes)
     serie_matchs = inverse_intervalle(intervalle_matchs)
-    y = []
-    x = []
-    xi = 0
     for num_match in serie_matchs:
         equipe1, equipe2, resultat = recupere_match_bdd(num_match)
         elo_equipes = calcule_match(elo_equipes, equipe1, equipe2, resultat, K)
-        if equipe1 == 28 or equipe2 == 28:
-            print(elo_equipes[28])
-            y.append(elo_equipes[28])
-            xi += 1
-            x.append(xi)
-    plt.plot(x, y)
-    length = len(x)
-    length_i = length / 10
-    for i in range(10):
-        plt.plot(x == i * length_i)
-    plt.show()
-
     return elo_equipes
 
 
@@ -147,8 +134,8 @@ def calcule_probabilite_victoire(elo_equipes, equipe1, equipe2):
     initialise_elo_equipes(elo_equipes)
     elo1 = elo_equipes[equipe1]
     elo2 = elo_equipes[equipe2]
-    ecart = elo1 - elo2
-    probabilite_de_victoire1 = 1 - 1 / (1 + math.exp(0.00583 * ecart - 0.0505))
+    ecart = elo2 - elo1
+    probabilite_de_victoire1 = 1 / (1 + 10**(ecart / 400))
     return probabilite_de_victoire1
 
 
@@ -191,13 +178,14 @@ def compare_resultats_variation(elo_equipes, interv_matchs_simule,
     Kmin, Kmax = intervK
     for Ki in range(int(Kmin / pas), int(Kmax / pas)):
         K = Ki * pas
-        print(K)
         elo_equipes = calcule_elo_ligue(elo_equipes, interv_matchs_simule, K)
         taux = compare_resultats(
             elo_equipes, interv_matchs_compare, seuil_bas, K)
+        print(taux[0])
         if taux[0] > taux_max:
             taux_max = taux[0]
             K_taux_max = K
+        elo_equipes = []
     return K_taux_max, taux_max
 
 
@@ -249,7 +237,7 @@ def parie_ligue_naif_seuil_variable(elo_equipes, intervalle_matchs, mise,
     return seuil_benef_max, benef_max_u, nbmatchs_benef_max
 
 
-# c) Paris avec gestion de bankroll
+# c) Paris avec gestion de bankroll naïve
 def parie_ligue(elo_equipes, intervalle_matchs, bankroll, seuil_bas, K):
     """Parie 3% de la bankroll sur tous les matchs d'un intervalle."""
 
@@ -345,17 +333,90 @@ def parie_ligue_seuil_variable_fermeture(elo_equipes, intervalle_matchs,
     return seuil_benef_max, bankroll_max
 
 
+# d) Calculs de vraisemblance et plot du meilleur K
 def calcule_vraisemblance(elo_equipes, intervalle_matchs, K):
     """Calcule la vraisemblance sur un intervalle de matchs donné."""
 
     initialise_elo_equipes(elo_equipes)
     serie_matchs = inverse_intervalle(intervalle_matchs)
-    vraisemblance = 1
+    log_vraisemblance = 0
     for num_match in serie_matchs:
         equipe1, equipe2, resultat = recupere_match_bdd(num_match)
         equipes = equipe2, equipe1
         equipeG, equipeP = equipes[resultat], equipes[1 - resultat]
         proba = calcule_probabilite_victoire(elo_equipes, equipeG, equipeP)
-        vraisemblance = vraisemblance * proba
+        log_proba = math.log(proba, 10)
+        log_vraisemblance += log_proba
         elo_equipes = calcule_match(elo_equipes, equipe1, equipe2, resultat, K)
-    return vraisemblance
+    return log_vraisemblance
+
+
+def calcule_vraisemblance_variation(elo_equipes, interv_matchs_simule,
+                                    interv_matchs_compare, intervK, pas):
+    """calcule_vraisemblance, pour K variant dans un intervalle."""
+
+    K_vraisemblance_max = 0
+    log_vraisemblance_max = -100000000000000
+    Kmin, Kmax = intervK
+    for Ki in range(int(Kmin / pas), int(Kmax / pas)):
+        K = Ki * pas
+        elo_equipes = calcule_elo_ligue(elo_equipes, interv_matchs_simule, K)
+        # print(elo_equipes)
+        log_vraisemblance = calcule_vraisemblance(
+            elo_equipes, interv_matchs_compare, K)
+        print(log_vraisemblance)
+        if log_vraisemblance > log_vraisemblance_max:
+            log_vraisemblance_max = log_vraisemblance
+            K_vraisemblance_max = K
+        elo_equipes = []
+    return K_vraisemblance_max, log_vraisemblance_max
+
+
+def calcule_v1500_variation(interv_matchs_compare, intervK, pas):
+    """calcule_vraisemblance, pour K variant dans un intervalle."""
+
+    K_vraisemblance_max = 0
+    log_vraisemblance_max = -100000000000000
+    Kmin, Kmax = intervK
+    x = interv_matchs_compare[0]
+    for Ki in range(int(Kmin / pas), int(Kmax / pas)):
+        K = Ki * pas
+        elo_equipes = calcule_elo_ligue([], [x + 1, x + 1000], K)
+        log_vraisemblance = calcule_vraisemblance(
+            elo_equipes, interv_matchs_compare, K)
+        if log_vraisemblance > log_vraisemblance_max:
+            log_vraisemblance_max = log_vraisemblance
+            K_vraisemblance_max = K
+    return K_vraisemblance_max
+
+
+def plot_K_dates_variables(date_min, date_max, nbmin, pmatch, intervK, pasK):
+    X = []
+    Y = []
+    Z = []
+    for x in range(date_min, date_max + 1 - nbmin, pmatch):
+        for y in range(x + nbmin, date_max + 1, pmatch):
+            print(x, y)
+            K = calcule_v1500_variation([x, y], intervK, pasK)
+            X.append(x)
+            Y.append(y)
+            Z.append(K)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(X, Y, Z, c='r')
+    ax.set_xlabel('Num Match Début')
+    ax.set_ylabel('Num Match Fin')
+    ax.set_zlabel('Meilleur K')
+    plt.show()
+
+
+def plot_K_duree_variable(date_min, date_max, pmatch, intervK, pasK):
+    X = []
+    Y = []
+    for x_fin in range(date_min + 1, date_max, pmatch):
+        print(x_fin)
+        K = calcule_v1500_variation([date_min, x_fin], intervK, pasK)
+        X.append(x_fin - date_min)
+        Y.append(K)
+    plt.plot(X, Y)
+    plt.show()

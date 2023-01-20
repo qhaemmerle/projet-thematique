@@ -1,4 +1,5 @@
-import calculs_elo as calculs
+import calculs_elo as calc
+import calculs_elo_mieux as cem
 
 
 # Initialisation
@@ -15,15 +16,15 @@ liste_equipes = ["ANA", "ARI", "ATL", "BAL", "BOS", "CHC", "CHW", "CIN",
 
 # Application
 
-elo_equipes = calculs.calcule_elo_ligue(elo_equipes, [13052, 37685], K)
-# resultats = calculs.parie_ligue_seuil_variable_fermeture(
+# elo_equipes = calc.calcule_elo_ligue(elo_equipes, [13052, 37685], K)
+# resultats = calc.parie_ligue_seuil_variable_fermeture(
 #     elo_equipes, [10584, 13051], 1000, [0.3, 0.5], 0.01, K)
 # print(resultats)
 
 # elo_equipes = []
-# # elo_equipes = calculs.calcule_elo_ligue(
+# # elo_equipes = calc.calcule_elo_ligue(
 # #     elo_equipes, [2299, 4702], K)
-# print(calculs.compare_resultats_variation(
+# print(calc.compare_resultats_variation(
 #     elo_equipes, [2299, 4702], [1000, 2298], 0.3, [0, 100], 0.1))
 
 # # print(calcule_elo_ligue(elo_equipes_a, elo_equipes_d, [2299, 4702], 16))
@@ -43,3 +44,22 @@ elo_equipes = calculs.calcule_elo_ligue(elo_equipes, [13052, 37685], K)
 
 # 789.2061333093754
 # 798.1714966054946
+
+# K_new, V_new = calc.calcule_vraisemblance_variation(
+#     elo_equipes, [25416, 27844], [22911, 25415], [0, 64], 0.1)
+
+# K_brut = calc.compare_resultats_variation(
+#   elo_equipes, [25416, 27844], [22911, 25415], 0.5, [0, 64], 0.1)
+
+# print(K_new, V_new)
+# print(K_brut)
+
+# 4.800000000000001, -731.8658122434797, 0.5504661532225374
+# 34.300000000000004, , 0.5618159708147548)
+
+# elo_equipes = calc.calcule_elo_ligue(elo_equipes, [25416, 27844], 4.8)
+# proba = calc.compare_resultats(elo_equipes, [22911, 25377], 0.5, 4.8)
+# print(proba[0])
+
+# L = calc.plot_K_dates_variables(5000, 20000, 1000, 250, [0, 10], 0.5)
+calc.plot_K_duree_variable(100, 20000, 500, [0, 10], 0.1)
