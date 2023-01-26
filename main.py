@@ -1,10 +1,9 @@
 import calculs_elo as calc
-import calculs_elo_mieux as cem
 
 
 # Initialisation
 nombre_equipes = 30
-K = 32
+K = 100
 elo_equipes = []
 elo_equipes_a = []
 elo_equipes_d = []
@@ -12,6 +11,9 @@ liste_equipes = ["ANA", "ARI", "ATL", "BAL", "BOS", "CHC", "CHW", "CIN",
                  "CLE", "COL", "DET", "FLA", "HOU", "KCR", "LAD", "MIL",
                  "MIN", "NYM", "NYY", "OAK", "PHI", "PIT", "SDP", "SEA",
                  "SFG", "STL", "TBD", "TEX", "TOR", "WSN"]
+BR = 10000  # bankroll totale
+f = 0.1  # part max de la BR misée chaque jour
+n = 13  # nombre de matchs par journée théorique
 
 
 # Application
@@ -62,4 +64,6 @@ liste_equipes = ["ANA", "ARI", "ATL", "BAL", "BOS", "CHC", "CHW", "CIN",
 # print(proba[0])
 
 # L = calc.plot_K_dates_variables(5000, 20000, 1000, 250, [0, 10], 0.5)
-calc.plot_K_duree_variable(100, 20000, 500, [0, 10], 0.1)
+# calc.plot_K_duree_variable(100, 20000, 500, [0, 500], 5)
+
+calc.plot_bankroll([16000, 18000], BR, f, n)
