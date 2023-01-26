@@ -1,5 +1,6 @@
 import math
 import json
+import random
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -16,8 +17,8 @@ cles_matchs = json.load(tableau_conversion)
 
 
 # 2) Données et outils
-nombre_equipes = 30
-K = 5  # Régule le nombre de points ELO échangés par match.
+nombre_equipes = 30  # Régule le nombre de points ELO échangés par match.
+K = 5
 elo_equipes = []
 tags_equipes = ["ANA", "ARI", "ATL", "BAL", "BOS", "CHC",
                 "CHW", "CIN", "CLE", "COL", "DET", "FLA",
@@ -57,8 +58,12 @@ def recupere_match_bdd(num_match):
 def recupere_cotes_ouverture_bdd(num_match):
     """Récupère les cotes à l'ouverture d'un match dans le fichier de bdd."""
 
-    cote_americaine1 = recupere_parametre_bdd(num_match, "coteOpen1")
-    cote_americaine2 = recupere_parametre_bdd(num_match, "coteOpen2")
+    try:
+        cote_americaine1 = recupere_parametre_bdd(num_match, "coteOpen1")
+        cote_americaine2 = recupere_parametre_bdd(num_match, "coteOpen2")
+    except:
+        cote_americaine1 = -100000
+        cote_americaine2 = -100000
     cotes_americaines = [cote_americaine1, cote_americaine2]
     cotes = []
     for cote_str in cotes_americaines:
@@ -73,8 +78,12 @@ def recupere_cotes_ouverture_bdd(num_match):
 def recupere_cotes_fermeture_bdd(num_match):
     """Récupère les cotes à la fermeture d'un match dans le fichier de bdd."""
 
-    cote_americaine1 = recupere_parametre_bdd(num_match, "coteClose1")
-    cote_americaine2 = recupere_parametre_bdd(num_match, "coteClose2")
+    try:
+        cote_americaine1 = recupere_parametre_bdd(num_match, "coteClose1")
+        cote_americaine2 = recupere_parametre_bdd(num_match, "coteClose2")
+    except:
+        cote_americaine1 = -100000
+        cote_americaine2 = -100000
     cotes_americaines = [cote_americaine1, cote_americaine2]
     cotes = []
     for cote_str in cotes_americaines:
@@ -452,6 +461,14 @@ def mise(num_match, BR, f, elo_equipes):
     return 0, 0
 
 
+# def mise(num_match, BR, f, elo_equipes):
+#     i = random.random()
+#     if i > 0.5:
+#         return 1, 0.01
+#     else:
+#         return 2, 0.01
+
+
 def benefice(num_match, BR, f, elo_equipes):
     equipe_mise, mise_match = mise(num_match, BR, f, elo_equipes)
     c1, c2 = recupere_cotes_fermeture_bdd(num_match)  # (eq1, eq2)
@@ -472,10 +489,10 @@ def esperance_de_benefice(num_match, BR, f, elo_equipes):
     equipe_mise, benef, mise_match = benefice(num_match, BR, f, elo_equipes)
     if equipe_mise == 1:
         esperance = proba_victoirede1 * benef - (1 - proba_victoirede1) * mise_match
-        return equipe_mise, esperance  # ici vous pouvez enlez 1-p * mise
+        return equipe_mise, esperance
     else:
         esperance = proba_victoirede2 * benef - (1 - proba_victoirede2) * mise_match
-        return equipe_mise, esperance  # ici vous pouvez enlez 1-p * mise
+        return equipe_mise, esperance
 
 
 def choix_match_liste_x_esperance(num_match, BR, f, n, elo_equipes):
@@ -494,12 +511,12 @@ def choix_match_liste_x_esperance(num_match, BR, f, n, elo_equipes):
     liste_esperance.sort()
     # print(liste_esperance)
     liste_esperance.reverse()
-    esperances = [match[0] for match in liste_esperance]
-    esperance_moyenne = sum(esperances) / len(liste_esperance)
+    # esperances = [match[0] for match in liste_esperance]
+    # esperance_moyenne = sum(esperances) / len(liste_esperance)
     for i in range(len(liste_esperance)):
         part_BR_match = liste_esperance[i][3]
         if (part_BR_journee + part_BR_match) <= f:
-            if liste_esperance[i][0] > esperance_moyenne:
+            if liste_esperance[i][0] > 0:
                 # changer pour éviter les espérances négatives
                 # changement ICI critere au dessur de l'esp moyenne
                 part_BR_journee += part_BR_match
@@ -511,6 +528,7 @@ def choix_match_liste_x_esperance(num_match, BR, f, n, elo_equipes):
 
 
 def bankroll(liste_matchs_mises, BR, f, part_BR_journee, elo_equipes):
+    nombre = 0
     BR2 = BR * (1 - part_BR_journee)  # BR moins nos mises
     for i in range(len(liste_matchs_mises)):
         num_match = liste_matchs_mises[i][0]
@@ -520,12 +538,14 @@ def bankroll(liste_matchs_mises, BR, f, part_BR_journee, elo_equipes):
         if equipe1_gagne:
             if equipe_mise == 1:
                 BR2 += benefice(num_match, BR, f, elo_equipes)[1]
-                BR2 += benefice(num_match, BR, f, elo_equipes)[2]
+                BR2 += 1 * benefice(num_match, BR, f, elo_equipes)[2]
+                nombre += 1
         else:
             if equipe_mise == 2:
                 BR2 += benefice(num_match, BR, f, elo_equipes)[1]
-                BR2 += benefice(num_match, BR, f, elo_equipes)[2]
-        return BR2
+                BR2 += 1 * benefice(num_match, BR, f, elo_equipes)[2]
+                nombre += 1
+    return BR2, nombre, len(liste_matchs_mises)
 
 
 def mise_ligue(interv_matchs, BR, f, n):
@@ -533,6 +553,9 @@ def mise_ligue(interv_matchs, BR, f, n):
     elo_equipes = calcule_elo_ligue([], [interv_matchs[1], 50000], K)
     quotient = int((interv_matchs[1] - interv_matchs[0]) / n)
     liste_br = []
+    BR2 = BR
+    nombre_gagne = 0
+    nombre_mises = 0
     print('quotient = ', quotient)
     for i in range(quotient):
         num_match = interv_matchs[1] - i * n
@@ -544,14 +567,17 @@ def mise_ligue(interv_matchs, BR, f, n):
             # #prend le premier num match et fait une liste de taille n
             # des n num match suivant : (espereance de gain, num match,
             # eq sur laquelle on mise)
-            parametres = choix_match_liste_x_esperance(
-                num_match, BR, f, n, elo_equipes)
-            liste_matchs_mises, part_BR_journee, elo_equipes = parametres
-            BR = bankroll(
-                liste_matchs_mises, BR, f, part_BR_journee, elo_equipes)
-            liste_br.append(BR)
-            # ideal on reccupere la date egalement :
+            # parametres = choix_match_liste_x_esperance(num_match, BR, f, n, elo_equipes)
+            liste_matchs_mises, part_BR_journee, elo_equipes = choix_match_liste_x_esperance(num_match, BR, f, n, elo_equipes)
+            BR2, nombre, longueur = bankroll(
+                liste_matchs_mises, BR2, f, part_BR_journee, elo_equipes)
+            liste_br.append(BR2)
+            nombre_gagne += nombre
+            nombre_mises += longueur
+            # ideal on recupere la date egalement :
             # recupere_parametre_bdd(num_match, "date") #date a confirmer
+    print(nombre_gagne)
+    print(nombre_mises)
     return liste_br  # , date
 
 
