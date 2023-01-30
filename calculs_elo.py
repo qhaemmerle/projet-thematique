@@ -388,9 +388,10 @@ def calcule_v1500_variation(interv_matchs_compare, intervK, pas):
     log_vraisemblance_max = -100000000000000
     Kmin, Kmax = intervK
     x = interv_matchs_compare[0]
+    elo_equipes = calcule_elo_ligue([], [x + 1, x + 1000], 32)
     for Ki in range(int(Kmin / pas), int(Kmax / pas)):
         K = Ki * pas
-        elo_equipes = calcule_elo_ligue([], [x + 1, x + 1000], K)
+        
         log_vraisemblance = calcule_vraisemblance(
             elo_equipes, interv_matchs_compare, K)
         if log_vraisemblance > log_vraisemblance_max:
@@ -422,12 +423,14 @@ def plot_K_dates_variables(date_min, date_max, nbmin, pmatch, intervK, pasK):
 def plot_K_duree_variable(date_min, date_max, pmatch, intervK, pasK):
     X = []
     Y = []
-    for x_fin in range(date_min + 1, date_max, pmatch):
+    for x_fin in range(date_min + pmatch, date_max, pmatch):
         print(x_fin)
         K = calcule_v1500_variation([date_min, x_fin], intervK, pasK)
         X.append(x_fin - date_min)
         Y.append(K)
     plt.plot(X, Y)
+    plt.xlabel("Nombre de matchs")
+    plt.ylabel("K optimal")
     plt.show()
 
 

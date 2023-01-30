@@ -1,5 +1,6 @@
 import calculs_elo as calc
 import random
+from matplotlib import pyplot as plt
 
 
 # Initialisation
@@ -65,6 +66,21 @@ n = 13  # nombre de matchs par journée théorique
 # print(proba[0])
 
 # L = calc.plot_K_dates_variables(5000, 20000, 1000, 250, [0, 10], 0.5)
-# calc.plot_K_duree_variable(100, 20000, 500, [0, 500], 5)
+# calc.plot_K_duree_variable(100, 40000, 400, [0, 10], 0.1)
 
-calc.plot_bankroll([16000, 30000], BR, f, n)
+# calc.plot_bankroll([16000, 30000], BR, f, n)
+
+liste_vraisemblance = []
+liste_prop = []
+for Ki in range(0, 100):
+    K = Ki
+    print(K)
+    # VK = calc.calcule_vraisemblance([], [100, 20000], K)
+    propK = calc.compare_resultats([], [100, 20000], 0.5, K)[0]
+    # liste_vraisemblance.append(VK)
+    liste_prop.append(propK)
+# plt.plot(liste_vraisemblance)
+plt.plot(liste_prop)
+plt.xlabel("K")
+plt.ylabel("Taux de succès")
+plt.show()
